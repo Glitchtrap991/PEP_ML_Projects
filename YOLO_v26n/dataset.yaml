@@ -1,0 +1,18 @@
+path: IEDXray
+
+train: train.txt
+val: val.txt
+test: images/test
+
+names:
+  0: Explosive
+  1: Battery
+  2: Modified laptop
+  3: Modified parts
+  4: Modified Mobile phone
+  5: Modified Pager
+  6: Modified Walkie Talkie
+  7: Laptop
+  8: Pager
+  9: Mobile Phone
+  10: Walkie-Talkie

@@ -1,0 +1,11 @@
+transformers
+timm
+safetensors
+huggingface-hub
+
+torchmetrics
+pycocotools
+
+Pillow
+numpy
+scipy
