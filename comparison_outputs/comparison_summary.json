@@ -1,0 +1,172 @@
+{
+    "confidence_threshold": 0.25,
+    "samples_processed": 20,
+    "device": "cuda",
+    "models": {
+        "deformable_detr": "Deformable DETR\\deformable_model\\best_deformable_detr.pt",
+        "yolo_nano": "best_nano.pt",
+        "yolo_med_960px": "yolov26_960_px\\best.pt"
+    },
+    "records": [
+        {
+            "image": "Test000913.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test000913_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 1,
+            "yolo_nano_detections": 0,
+            "yolo_med_detections": 0
+        },
+        {
+            "image": "Test000205.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test000205_comparison.png",
+            "ground_truth_count": 2,
+            "deformable_detr_detections": 4,
+            "yolo_nano_detections": 0,
+            "yolo_med_detections": 2
+        },
+        {
+            "image": "Test002254.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test002254_comparison.png",
+            "ground_truth_count": 2,
+            "deformable_detr_detections": 1,
+            "yolo_nano_detections": 1,
+            "yolo_med_detections": 1
+        },
+        {
+            "image": "Test002007.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test002007_comparison.png",
+            "ground_truth_count": 2,
+            "deformable_detr_detections": 1,
+            "yolo_nano_detections": 2,
+            "yolo_med_detections": 2
+        },
+        {
+            "image": "Test001829.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test001829_comparison.png",
+            "ground_truth_count": 3,
+            "deformable_detr_detections": 8,
+            "yolo_nano_detections": 4,
+            "yolo_med_detections": 2
+        },
+        {
+            "image": "Test001144.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test001144_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 0,
+            "yolo_nano_detections": 0,
+            "yolo_med_detections": 0
+        },
+        {
+            "image": "Test000840.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test000840_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 0,
+            "yolo_nano_detections": 0,
+            "yolo_med_detections": 0
+        },
+        {
+            "image": "Test004468.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test004468_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 2,
+            "yolo_nano_detections": 1,
+            "yolo_med_detections": 2
+        },
+        {
+            "image": "Test000713.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test000713_comparison.png",
+            "ground_truth_count": 2,
+            "deformable_detr_detections": 4,
+            "yolo_nano_detections": 2,
+            "yolo_med_detections": 2
+        },
+        {
+            "image": "Test004838.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test004838_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 1,
+            "yolo_nano_detections": 1,
+            "yolo_med_detections": 1
+        },
+        {
+            "image": "Test003457.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test003457_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 1,
+            "yolo_nano_detections": 1,
+            "yolo_med_detections": 1
+        },
+        {
+            "image": "Test000261.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test000261_comparison.png",
+            "ground_truth_count": 2,
+            "deformable_detr_detections": 3,
+            "yolo_nano_detections": 2,
+            "yolo_med_detections": 1
+        },
+        {
+            "image": "Test000245.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test000245_comparison.png",
+            "ground_truth_count": 2,
+            "deformable_detr_detections": 5,
+            "yolo_nano_detections": 2,
+            "yolo_med_detections": 2
+        },
+        {
+            "image": "Test000768.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test000768_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 1,
+            "yolo_nano_detections": 0,
+            "yolo_med_detections": 0
+        },
+        {
+            "image": "Test001792.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test001792_comparison.png",
+            "ground_truth_count": 3,
+            "deformable_detr_detections": 2,
+            "yolo_nano_detections": 4,
+            "yolo_med_detections": 3
+        },
+        {
+            "image": "Test001906.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test001906_comparison.png",
+            "ground_truth_count": 3,
+            "deformable_detr_detections": 4,
+            "yolo_nano_detections": 4,
+            "yolo_med_detections": 1
+        },
+        {
+            "image": "Test004140.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test004140_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 1,
+            "yolo_nano_detections": 1,
+            "yolo_med_detections": 1
+        },
+        {
+            "image": "Test004932.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test004932_comparison.png",
+            "ground_truth_count": 0,
+            "deformable_detr_detections": 1,
+            "yolo_nano_detections": 0,
+            "yolo_med_detections": 0
+        },
+        {
+            "image": "Test000218.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test000218_comparison.png",
+            "ground_truth_count": 2,
+            "deformable_detr_detections": 3,
+            "yolo_nano_detections": 2,
+            "yolo_med_detections": 2
+        },
+        {
+            "image": "Test004598.jpg",
+            "grid_image": "comparison_outputs\\grids\\Test004598_comparison.png",
+            "ground_truth_count": 1,
+            "deformable_detr_detections": 3,
+            "yolo_nano_detections": 2,
+            "yolo_med_detections": 2
+        }
+    ]
+}

@@ -1,8 +1,6 @@
 import boto3
 import sagemaker
-from sagemaker.core.shapes import InstancePreference
-from sagemaker.core.training.configs import Compute
-from sagemaker.train.model_trainer import ModelTrainer
+from sagemaker.pytorch import PyTorch
 
 
 # ============================================================
@@ -23,17 +21,6 @@ DATASET_S3 = "s3://yolov26-m-run/dataset"
 # AWS SESSION
 # ============================================================
 
-compute = Compute(
-    instance_preferences=[
-        InstancePreference(instance_type="ml.g6e.8xlarge"),
-        InstancePreference(instance_type="ml.g6.8xlarge"),
-        InstancePreference(instance_type="ml.g5.8xlarge"),
-    ],
-    instance_count=1,
-    volume_size_in_gb=100,
-)
-
-
 boto_session = boto3.Session(region_name=REGION)
 
 sagemaker_session = sagemaker.Session(
@@ -49,7 +36,7 @@ print("Dataset:", DATASET_S3)
 # TRAINING JOB
 # ============================================================
 
-estimator = ModelTrainer(
+estimator = PyTorch(
     entry_point="train.py",
     source_dir="src",
 

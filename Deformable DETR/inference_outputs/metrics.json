@@ -1,0 +1,112 @@
+{
+    "confidence_threshold": 0.25,
+    "pr_iou_threshold": 0.5,
+    "precision": 0.4875851461217315,
+    "recall": 0.49703214245716204,
+    "map50": 0.5246206521987915,
+    "map50_95": -1.0,
+    "tp": 4438,
+    "fp": 4664,
+    "fn": 4491,
+    "per_class": {
+        "0": {
+            "class_name": "Explosive",
+            "precision": 0.7449908925318761,
+            "recall": 0.310790273556231,
+            "tp": 409,
+            "fp": 140,
+            "fn": 907,
+            "map_50_95": -1.0
+        },
+        "1": {
+            "class_name": "Battery",
+            "precision": 0.6438658428949691,
+            "recall": 0.6472937000887311,
+            "tp": 1459,
+            "fp": 807,
+            "fn": 795,
+            "map_50_95": -1.0
+        },
+        "2": {
+            "class_name": "Modified laptop",
+            "precision": 0.9629629629629629,
+            "recall": 0.1392857142857143,
+            "tp": 78,
+            "fp": 3,
+            "fn": 482,
+            "map_50_95": -1.0
+        },
+        "3": {
+            "class_name": "Modified parts",
+            "precision": 0.28225407810182895,
+            "recall": 0.3024364406779661,
+            "tp": 571,
+            "fp": 1452,
+            "fn": 1317,
+            "map_50_95": -1.0
+        },
+        "4": {
+            "class_name": "Modified Mobile phone",
+            "precision": 0.2644444444444444,
+            "recall": 0.3148148148148148,
+            "tp": 238,
+            "fp": 662,
+            "fn": 518,
+            "map_50_95": -1.0
+        },
+        "5": {
+            "class_name": "Modified Pager",
+            "precision": 0.5714285714285714,
+            "recall": 0.07168458781362007,
+            "tp": 20,
+            "fp": 15,
+            "fn": 259,
+            "map_50_95": -1.0
+        },
+        "6": {
+            "class_name": "Modified Walkie Talkie",
+            "precision": 0.9222222222222223,
+            "recall": 0.564625850340136,
+            "tp": 166,
+            "fp": 14,
+            "fn": 128,
+            "map_50_95": -1.0
+        },
+        "7": {
+            "class_name": "Laptop",
+            "precision": 0.42927794263105834,
+            "recall": 0.9954128440366973,
+            "tp": 434,
+            "fp": 577,
+            "fn": 2,
+            "map_50_95": -1.0
+        },
+        "8": {
+            "class_name": "Pager",
+            "precision": 0.8006134969325154,
+            "recall": 0.9923954372623575,
+            "tp": 261,
+            "fp": 65,
+            "fn": 2,
+            "map_50_95": -1.0
+        },
+        "9": {
+            "class_name": "Mobile Phone",
+            "precision": 0.4162203519510329,
+            "recall": 0.8717948717948718,
+            "tp": 544,
+            "fp": 763,
+            "fn": 80,
+            "map_50_95": -1.0
+        },
+        "10": {
+            "class_name": "Walkie-Talkie",
+            "precision": 0.6084905660377359,
+            "recall": 0.9961389961389961,
+            "tp": 258,
+            "fp": 166,
+            "fn": 1,
+            "map_50_95": -1.0
+        }
+    }
+}

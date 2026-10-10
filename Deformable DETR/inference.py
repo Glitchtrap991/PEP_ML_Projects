@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-
+import random
 import timm
 import torch
 from PIL import Image
@@ -20,7 +20,11 @@ from xai.gradcam import DeformableDETRGradCAM
 # CONFIG
 # ============================================================
 
-DATASET_ROOT = Path("../IEDXray").resolve()
+DATASET_ROOT = (Path(__file__).resolve().parent / "../IEDXray").resolve()
+
+# "test" = untouched official test; "val" = training validation manifest.
+EVAL_SPLIT = "test"
+
 TEST_IMAGES = DATASET_ROOT / "images" / "test"
 TEST_LABELS = DATASET_ROOT / "labels" / "test"
 
@@ -28,7 +32,7 @@ CHECKPOINT_PATH = Path(
     "deformable_model/best_deformable_detr.pt"
 )
 
-OUTPUT_DIR = Path("inference_outputs")
+OUTPUT_DIR = Path("inference_outputs") / EVAL_SPLIT
 GRADCAM_DIR = OUTPUT_DIR / "gradcam"
 
 BACKBONE_NAME = "tf_efficientnet_b7"
@@ -45,7 +49,8 @@ MAP_SCORE_THRESHOLD = 0.001
 PR_IOU_THRESHOLD = 0.50
 
 # Limit Grad-CAM generation because backward() per detection is expensive.
-MAX_GRADCAM_IMAGES = 0
+MAX_GRADCAM_IMAGES = 20
+RANDOM_GRADCAM_SEED = 42
 
 DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
@@ -143,8 +148,7 @@ def load_checkpoint(model):
     )
 
     # Our training code saved a checkpoint dictionary.
-    if isinstance(checkpoint, dict) and \
-            "model_state_dict" in checkpoint:
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
 
         state_dict = checkpoint[
             "model_state_dict"
@@ -578,6 +582,8 @@ def main():
         box_format="xyxy",
         iou_type="bbox",
         class_metrics=True,
+        # Standard COCO maxDets: [1, 10, 100].
+        # Changing this to 300 can make the standard mAP summary -1.
     )
 
     # --------------------------------------------------------
@@ -610,20 +616,36 @@ def main():
     # Images
     # --------------------------------------------------------
 
-    image_paths = sorted([
-        path
-        for path in TEST_IMAGES.iterdir()
-        if path.suffix.lower()
-        in {".jpg", ".jpeg", ".png", ".bmp"}
-    ])
+    if EVAL_SPLIT == "test":
+        image_paths = sorted(
+            p for p in TEST_IMAGES.iterdir()
+            if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp"}
+        )
+        print(f"Official test images: {len(image_paths)}")
+        if len(image_paths) != 5136:
+            print("WARNING: Expected 5,136 images in the official test split.")
+    elif EVAL_SPLIT == "val":
+        manifest = DATASET_ROOT / "val.txt"
+        if not manifest.is_file():
+            raise FileNotFoundError(f"Missing validation manifest: {manifest}")
+        image_paths = [
+            (DATASET_ROOT / line.strip().replace("\\", "/").removeprefix("./")).resolve()
+            for line in manifest.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        print(f"Validation images: {len(image_paths)}")
+    else:
+        raise ValueError("EVAL_SPLIT must be 'test' or 'val'.")
 
-    print(
-        f"Official test images: "
-        f"{len(image_paths)}"
-    )
+    if not image_paths:
+        raise RuntimeError(f"No images found for EVAL_SPLIT={EVAL_SPLIT}.")
+
+    for p in image_paths:
+        if not p.is_file():
+            raise FileNotFoundError(f"Missing image: {p}")
 
     all_detections = []
-
+    gradcam_candidates = []
     gradcam_images_saved = 0
 
     # --------------------------------------------------------
@@ -640,10 +662,14 @@ def main():
 
         width, height = image.size
 
-        label_path = (
-            TEST_LABELS
-            / f"{image_path.stem}.txt"
-        )
+        # images/test/x.jpg -> labels/test/x.txt
+        # images/train/x.jpg -> labels/train/x.txt (validation manifest)
+        relative_path = image_path.relative_to(DATASET_ROOT)
+        parts = list(relative_path.parts)
+        if parts[0].lower() != "images":
+            raise ValueError(f"Expected image under images/: {image_path}")
+        parts[0] = "labels"
+        label_path = DATASET_ROOT.joinpath(*parts).with_suffix(".txt")
 
         gt_boxes, gt_labels = (
             load_ground_truth(
@@ -672,52 +698,36 @@ def main():
                 pixel_values=pixel_values
             )
 
-        # Deformable DETR uses sigmoid focal classification,
-        # NOT softmax.
-        probabilities = (
-            outputs.logits[0].sigmoid()
-        )
+        # HF Deformable DETR postprocessing ranks query-class PAIRS,
+        # not only the single highest class per query. Its standard
+        # postprocessor returns the top 100 scored pairs per image.
+        postprocessed = processor.post_process_object_detection(
+            outputs,
+            threshold=0.0,
+            target_sizes=torch.tensor([[height, width]], device=DEVICE),
+        )[0]
 
-        scores, labels = probabilities.max(
-            dim=-1
-        )
+        scores = postprocessed["scores"]
+        labels = postprocessed["labels"]
+        boxes_xyxy = postprocessed["boxes"]
 
-        # Preserve original DETR query IDs.
-        query_indices = torch.arange(
-            outputs.logits.shape[1],
-            device=DEVICE,
-        )
-
-        # ----------------------------------------------------
-        # Convert normalized cxcywh -> original-image xyxy
-        # ----------------------------------------------------
-
-        boxes = outputs.pred_boxes[0]
-
-        cx = boxes[:, 0]
-        cy = boxes[:, 1]
-        bw = boxes[:, 2]
-        bh = boxes[:, 3]
-
-        x1 = (cx - bw / 2) * width
-        y1 = (cy - bh / 2) * height
-        x2 = (cx + bw / 2) * width
-        y2 = (cy + bh / 2) * height
-
-        boxes_xyxy = torch.stack(
-            [x1, y1, x2, y2],
-            dim=-1,
-        )
-
-        boxes_xyxy[:, [0, 2]] = (
-            boxes_xyxy[:, [0, 2]]
-            .clamp(0, width)
-        )
-
-        boxes_xyxy[:, [1, 3]] = (
-            boxes_xyxy[:, [1, 3]]
-            .clamp(0, height)
-        )
+        # Recover each returned detection's original query index for
+        # detection-specific Grad-CAM. Same flatten/top-k order as HF.
+        num_queries, num_classes = outputs.logits[0].shape
+        flat_scores = outputs.logits[0].sigmoid().flatten()
+        topk = min(100, flat_scores.numel())
+        top_scores, top_indices = flat_scores.topk(topk)
+        query_indices = top_indices // num_classes
+        top_labels = top_indices % num_classes
+        if (
+            scores.numel() != topk
+            or not torch.allclose(scores, top_scores, rtol=1e-4, atol=1e-6)
+            or not torch.equal(labels, top_labels)
+        ):
+            raise RuntimeError(
+                "HF postprocessor top-k does not match query-index recovery. "
+                "Check the installed transformers version."
+            )
 
         # ----------------------------------------------------
         # mAP predictions
@@ -871,86 +881,37 @@ def main():
         )
 
         # ----------------------------------------------------
-        # Grad-CAM
-        #
-        # Generate for highest-confidence detection on a
-        # limited number of images.
+        # Grad-CAM candidates
+        # Collect detected cases to randomly sample from.
         # ----------------------------------------------------
 
-        if (
-            gradcam_images_saved
-            < MAX_GRADCAM_IMAGES
-            and len(pred_scores) > 0
-        ):
-
+        if len(pred_scores) > 0:
             best_index = int(
                 torch.argmax(
                     pred_scores
                 ).item()
             )
-
-            query_index = int(
-                pred_queries[
+            gradcam_candidates.append({
+                "image_path": image_path,
+                "query_index": int(
+                    pred_queries[
+                        best_index
+                    ].item()
+                ),
+                "class_id": int(
+                    pred_labels[
+                        best_index
+                    ].item()
+                ),
+                "confidence": float(
+                    pred_scores[
+                        best_index
+                    ].item()
+                ),
+                "box": pred_boxes[
                     best_index
-                ].item()
-            )
-
-            class_id = int(
-                pred_labels[
-                    best_index
-                ].item()
-            )
-
-            confidence = float(
-                pred_scores[
-                    best_index
-                ].item()
-            )
-
-            box = (
-                pred_boxes[
-                    best_index
-                ].tolist()
-            )
-
-            # Grad-CAM requires gradients, so this performs
-            # another forward/backward pass for this image.
-            cam, _, target_logit = (
-                gradcam.generate(
-                    pixel_values=pixel_values,
-                    query_index=query_index,
-                    class_id=class_id,
-
-                    # IMPORTANT:
-                    # output CAM in ORIGINAL image resolution.
-                    output_size=(
-                        height,
-                        width,
-                    ),
-                )
-            )
-
-            output_path = (
-                GRADCAM_DIR
-                / (
-                    f"{image_path.stem}"
-                    f"_q{query_index}"
-                    f"_c{class_id}.png"
-                )
-            )
-
-            save_gradcam_overlay(
-                image=image,
-                cam=cam,
-                box=box,
-                class_name=id2label[
-                    class_id
-                ],
-                confidence=confidence,
-                output_path=output_path,
-            )
-
-            gradcam_images_saved += 1
+                ].tolist(),
+            })
 
         if (
             (image_index + 1) % 100
@@ -1016,7 +977,7 @@ def main():
 
     print("\n")
     print("=" * 72)
-    print("OFFICIAL IEDXRAY TEST RESULTS")
+    print(f"IEDXRAY {EVAL_SPLIT.upper()} RESULTS")
     print("=" * 72)
 
     print(
@@ -1200,6 +1161,69 @@ def main():
             indent=4,
         )
 
+    # --------------------------------------------------------
+    # Grad-CAM on randomly sampled cases
+    # --------------------------------------------------------
+
+    if MAX_GRADCAM_IMAGES > 0 and gradcam_candidates:
+        num_samples = min(
+            MAX_GRADCAM_IMAGES,
+            len(gradcam_candidates),
+        )
+        rng = random.Random(RANDOM_GRADCAM_SEED)
+        sampled_candidates = rng.sample(
+            gradcam_candidates,
+            num_samples,
+        )
+
+        print(
+            f"\nGenerating Grad-CAM overlays for {num_samples} "
+            f"randomly selected cases..."
+        )
+
+        for candidate in sampled_candidates:
+            cand_image = Image.open(
+                candidate["image_path"]
+            ).convert("RGB")
+            cand_w, cand_h = cand_image.size
+
+            encoding = processor(
+                images=cand_image,
+                return_tensors="pt",
+            )
+            cand_pixel_values = encoding[
+                "pixel_values"
+            ].to(DEVICE)
+
+            cam, _, _ = gradcam.generate(
+                pixel_values=cand_pixel_values,
+                query_index=candidate["query_index"],
+                class_id=candidate["class_id"],
+                output_size=(cand_h, cand_w),
+            )
+
+            output_path = (
+                GRADCAM_DIR
+                / (
+                    f"{candidate['image_path'].stem}"
+                    f"_q{candidate['query_index']}"
+                    f"_c{candidate['class_id']}.png"
+                )
+            )
+
+            save_gradcam_overlay(
+                image=cand_image,
+                cam=cam,
+                box=candidate["box"],
+                class_name=id2label[
+                    candidate["class_id"]
+                ],
+                confidence=candidate["confidence"],
+                output_path=output_path,
+            )
+
+            gradcam_images_saved += 1
+
     gradcam.remove_hooks()
 
     print(
@@ -1212,10 +1236,15 @@ def main():
         OUTPUT_DIR / "detections.json"
     )
 
-    print(
-        "Saved Grad-CAM images to:",
-        GRADCAM_DIR
-    )
+    if gradcam_images_saved > 0:
+        print(
+            f"Saved {gradcam_images_saved} Grad-CAM images to:",
+            GRADCAM_DIR
+        )
+    else:
+        print(
+            "No Grad-CAM images saved."
+        )
 
 
 if __name__ == "__main__":
